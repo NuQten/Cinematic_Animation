@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import math
-from math import atan2, cos, pi, sin
+from math import atan2, cos, pi, sin, log10
 from typing import overload
 
 import numpy as np
-from constants import TOLERANCE
+from .constants import TOLERANCE, DECIMAL
 
 
 class Point2D:
@@ -63,7 +63,7 @@ class Point2D:
         return np.array([self.x, self.y])
 
     def __str__(self) -> str:
-        return f"Point : {self.name} ({self.x}, {self.y})"
+        return f"Point : {self.name}({self.x}, {self.y})"
 
     def __eq__(self, other: Point2D) -> bool:
         if not isinstance(other, Point2D):
@@ -72,6 +72,9 @@ class Point2D:
         x = math.isclose(self.x, other.x, abs_tol=TOLERANCE)
         y = math.isclose(self.y, other.y, abs_tol=TOLERANCE)
         return x and y
+
+    def __hash__(self) -> int:
+        return hash((round(self.x, DECIMAL), round(self.y, DECIMAL)))
 
     def distance(self, other: Point2D) -> float:
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
@@ -272,6 +275,14 @@ class Structure2D:
             return item in self.points
         else:
             return False
+
+    def equations(self) -> list[float]:
+        residus = []
+        for (p1, p2), l0 in self._distances_initiales.items():
+            dx = p2.x - p1.x
+            dy = p2.y - p1.y
+            residus.append((dx**2 + dy**2) - l0**2)
+        return residus
 
 if __name__ == '__main__': 
     a = Point2D(1, 2)
