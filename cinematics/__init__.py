@@ -1,6 +1,6 @@
 from .constants import TOLERANCE
 from .errors import JonctionError
-from .geometry import Droite2D, Point2D, Segment2D
+from .geometry import Droite2D, Point2D, Segment2D, Structure2D
 from .joints import (
     Liaison,
     LiaisonBati2D,

@@ -237,9 +237,41 @@ class Segment2D(Droite2D):
 
 
 class Structure2D:
-    def __init__(self):
-        pass
+    def __init__(self, *segments: Segment2D, name: str | None = None) -> None:
 
+        if len(segments) == 0:
+            raise ValueError("Une structure 2D doit contenir au moins un segment")
+
+        self.name = name or f"Structure({', '.join(s.name for s in segments)})"
+        self.segments = list(segments)
+
+        # Define point unique
+        pts: set[Point2D] = set()
+        for s in self.segments:
+            pts.add(s.point1)
+            pts.add(s.point2)
+        self.points: list[Point2D] = list(pts)
+
+        self._distances_initiales: dict[tuple[Point2D, Point2D], float] = {}
+        for s in self.segments:
+            self._distances_initiales[(s.point1, s.point2)] = s.longeur
+
+    @property
+    def centre_gravite(self) -> Point2D:
+        x_moy = sum(p.x for p in self.points) / len(self.points)
+        y_moy = sum(p.y for p in self.points) / len(self.points)
+        return Point2D(x_moy, y_moy, name=f'G_{self.name}')
+
+    def __str__(self) -> str: 
+        return f"Structure2D : {self.name} ({len(self.segments)} segments, {len(self.points)} points)"
+
+    def __contains__(self, item: object) -> bool: 
+        if isinstance(item, Segment2D):
+            return item in self.segments
+        elif isinstance(item, Point2D):
+            return item in self.points
+        else:
+            return False
 
 if __name__ == '__main__': 
     a = Point2D(1, 2)
