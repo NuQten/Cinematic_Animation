@@ -5,8 +5,8 @@ from typing import Literal, overload
 
 import numpy as np
 
-from errors import JonctionError
-from geometry import Droite2D, Point2D, Segment2D, Structure2D
+from .errors import JonctionError
+from .geometry import Droite2D, Point2D, Segment2D, Structure2D
 
 
 class Liaison(ABC):
@@ -297,3 +297,4 @@ class LiaisonPonctuelle2D(Liaison):
 
 
 if __name__ == '__main__': 
+    pass
