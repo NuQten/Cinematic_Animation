@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches et environnements
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# VS Code et éditeurs
+.vscode/
+*.swp
+
+# Fichiers de sortie / figures éventuelles
+*.png
+*.gif
+*.mp4
