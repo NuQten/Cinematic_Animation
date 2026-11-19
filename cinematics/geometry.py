@@ -65,6 +65,9 @@ class Point2D:
         return f"Point : {self.name}({self.x}, {self.y})"
 
     def __eq__(self, other:Point2D) -> bool:
+        if not isinstance(other, Point2D):
+            return False
+        
         x = math.isclose(self.x, other.x, abs_tol = TOLERANCE)
         y = math.isclose(self.y, other.y, abs_tol = TOLERANCE)
         return x and y
@@ -75,8 +78,10 @@ class Point2D:
 class Droite2D:
 
     def __init__(self, point1: Point2D, point2: Point2D):
-    
-            self.name = "(" + point1.name + ' ' + point2.name + ")"
+
+            n1 = point1.name or "?"
+            n2 = point2.name or "?"
+            self.name = f"({n1} {n2})"
     
             self.point1 = point1 
             self.point2 = point2
@@ -130,12 +135,13 @@ class Droite2D:
 
     def distance_orthogonal(self, P: Point2D) -> float:
         """Donne la distance orthogonal entre le point P et la droite AB"""
-        H = self.projete_orthogonal(P)
+        H = Droite2D.projete_orthogonal(self, P)
         return P.distance(H)
 
     def is_include(self, P: Point2D) -> bool:
         """Dit si le point P appartient à la droite"""
-        return self.distance_orthogonal(P) < TOLERANCE
+        H = Droite2D.projete_orthogonal(self, P)
+        return P.distance(H) < TOLERANCE
 
 class Segment2D(Droite2D):
     def __init__(self, point1: Point2D, point2: Point2D):
@@ -145,7 +151,9 @@ class Segment2D(Droite2D):
 
         super().__init__(point1, point2)
 
-        self.name = "[" + point1.name + ' ' + point2.name + "]"
+        n1 = point1.name or "?"
+        n2 = point2.name or "?"
+        self.name = f"[{n1} {n2}]"
 
     @property
     def longeur(self):
@@ -162,13 +170,21 @@ class Segment2D(Droite2D):
 
     @property
     def droite2D(self) -> Droite2D:
-        return super().__init__(self.point1, self.point2)
+        return Droite2D(self.point1, self.point2)
 
     def __str__(self) -> str:
         return f"Segment : {self.name} entre {self.point1} et {self.point2}"
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Segment2D):
+            return False
+
+        p1 = self.point1 == other.point1 and self.point2 == other.point2 
+        p2 = self.point2 == other.point1 and self.point1 == other.point2 
+        return p1 or p2
+
     def is_include(self, P):
-        """Dit si le poitn P appartient au segment"""
+        """Dit si le point P appartient au segment"""
         if super().is_include(P):
             A = self.point1
             B = self.point2

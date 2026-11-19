@@ -63,7 +63,7 @@ class LiaisonPivot2D(Liaison):
 
         super().__init__(segment1, segment2, ddl)
 
-        if self.centre == None : 
+        if self.centre is None : 
             raise JonctionError("Les deux segment n'ont pas de point en commun")
 
 
@@ -195,9 +195,9 @@ class LiaisonBati2D(LiaisonEncastrement2D):
 
         # LiaisonBati2D(segment, point, axe)
         axe = orientation
-        if axe == 'x':
+        if axe in {'x', 'X'}:
             u = np.array([1.0, 0.0])
-        elif axe == 'y':
+        elif axe in {'y', 'Y'}:
             u = np.array([0.0, 1.0])
         # LiaisonBati2D(segment, point, angle)
         elif isinstance(orientation, (float, int)):
@@ -206,11 +206,16 @@ class LiaisonBati2D(LiaisonEncastrement2D):
         else : 
             raise ValueError("L'axe doit être \'x\', \'y\' ou un angle en radians")
 
+        if not segment.is_include(point):
+            raise JonctionError("Le point d'ancrage du bâti doit appartenir au segment")
+
         point1 = point.array - 0.5*u
         point2 = point.array + 0.5*u
 
         bati = Segment2D(Point2D(point1), Point2D(point2))
         super().__init__(segment, bati)
+
+        self._point_jonction = point
 
 
 # TODO : Créer liaison ponctuelle si utile (à voir)
