@@ -3,11 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Test
+test/
+.pytest_cache/
+
 # Caches et environnements
 .venv/
 venv/
 env/
-.pytest_cache/
 
 # VS Code et éditeurs
 .vscode/
@@ -17,3 +20,6 @@ env/
 *.png
 *.gif
 *.mp4
+
+# Bin
+bin/
