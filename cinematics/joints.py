@@ -58,6 +58,7 @@ class Liaison(ABC):
     def __str__(self) -> str:
         return f"{self.__class__.__name__} entre {self.segment1.name} et {self.segment2.name} au point {self.centre.name}"
 
+
 class LiaisonPivot2D(Liaison):
     def __init__(self, segment1: Segment2D, segment2: Segment2D) -> None:
         """Liaison pivot 2D reliant deux segment
@@ -89,7 +90,8 @@ class LiaisonPivot2D(Liaison):
             pt1.x - pt2.x,
             pt1.y - pt2.y
         ]
-    
+
+
 class LiaisonGlissiere2D(Liaison):
     def __init__(
         self,
@@ -146,6 +148,10 @@ class LiaisonGlissiere2D(Liaison):
                 "Le point coulisant doit être situé sur la droite défini par le segment directeur"
             )
 
+        u_rail = self._segment_directeur.vector_director
+        u_guide = self._segment_guide.vector_director
+        self._initial_sin = float(u_rail[0] * u_guide[1] - u_rail[1] * u_guide[0])
+
     @property
     def vector_director(self) -> np.ndarray:
         """Vecteur unitaire directeur u de la translation"""
@@ -180,9 +186,10 @@ class LiaisonGlissiere2D(Liaison):
         # 2. Orientation relative bloquée
         u_rail = self._segment_directeur.vector_director
         u_guide = self._segment_guide.vector_director
-        rotation_interdite = u_rail[0] * u_guide[1] - u_rail[1] * u_guide[0]
+        actuel_sin = u_rail[0] * u_guide[1] - u_rail[1] * u_guide[0]
+        rotation = actuel_sin - self._initial_sin
 
-        return [decollement, rotation_interdite]
+        return [decollement, rotation]
 
 
 class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
@@ -212,6 +219,7 @@ class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
         v = self.vector_normal 
 
         return [dx * v[0] + dy * v[1]]
+
 
 class LiaisonEncastrement2D(Liaison):
     def __init__(self, segment1: Segment2D, segment2: Segment2D) -> None:
@@ -243,11 +251,31 @@ class LiaisonEncastrement2D(Liaison):
         else:
             raise JonctionError("Un point des segments doit être situé l'autre segment")
 
+        # Define initial angle betwenn segment1 et segment2
+        u1 = self.segment1.vector_director
+        u2 = self.segment2.vector_director
+        self._initial_cos = float(u1 @ u2)
+        self._initial_sin = float(u1[0]*u2[1] - u1[1]*u2[0])
+
     @property
     def centre(self) -> Point2D:
         return self._point_jonction
 
+    def equations(self) -> list[float]:
 
+        pt1 = self.segment1.point1 if self.centre == self.segment1.point1 else self.segment1.point2
+        pt2 = self.segment2.point1 if self.centre == self.segment2.point1 else self.segment2.point2
+
+        u1 = self.segment1.vector_director
+        u2 = self.segment2.vector_director
+        actuel_sin = u1[0]*u2[1] - u1[1]*u2[0]
+
+        return [
+            pt1.x - pt2.x,
+            pt1.y - pt2.y,
+            actuel_sin - self._initial_sin
+        ]
+    
 class LiaisonBati2D(LiaisonEncastrement2D):
     @overload
     def __init__(
@@ -289,6 +317,7 @@ class LiaisonBati2D(LiaisonEncastrement2D):
         super().__init__(segment, bati)
 
         self._point_jonction = point
+
 
 
 # TODO : Créer liaison ponctuelle si utile (à voir)
