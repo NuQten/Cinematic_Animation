@@ -264,12 +264,12 @@ class Structure2D:
     def centre_gravite(self) -> Point2D:
         x_moy = sum(p.x for p in self.points) / len(self.points)
         y_moy = sum(p.y for p in self.points) / len(self.points)
-        return Point2D(x_moy, y_moy, name=f'G_{self.name}')
+        return Point2D(x_moy, y_moy, name=f"G_{self.name}")
 
-    def __str__(self) -> str: 
+    def __str__(self) -> str:
         return f"Structure2D : {self.name} ({len(self.segments)} segments, {len(self.points)} points)"
 
-    def __contains__(self, item: object) -> bool: 
+    def __contains__(self, item: object) -> bool:
         if isinstance(item, Segment2D):
             return item in self.segments
         elif isinstance(item, Point2D):
@@ -286,16 +286,21 @@ class Structure2D:
         return residus
 
 
-def segment2structure(element: Structure2D | Segment2D) -> Structure2D:
+def to_structure2d(element: Structure2D | Segment2D) -> Structure2D:
 
     if isinstance(element, Structure2D):
         return element
     elif isinstance(element, Segment2D):
         return Structure2D(element)
-    else :
-        raise TypeError(f"Attendu Structure2D ou Segment2D, reçu {type(element).__name__}")
+    else:
+        raise TypeError(
+            f"Attendu Structure2D ou Segment2D, reçu {type(element).__name__}"
+        )
 
 
-if __name__ == '__main__': 
+def det_2_vector2d(u: Segment2D | Droite2D, v: Segment2D | Droite2D) -> float:
+    return float(u[0]*v[1] - u[1]*v[2])
+
+if __name__ == "__main__":
     a = Point2D(1, 2)
     print(a)
