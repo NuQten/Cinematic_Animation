@@ -299,7 +299,8 @@ def to_structure2d(element: Structure2D | Segment2D) -> Structure2D:
 
 
 def det_2_vector2d(u: Segment2D | Droite2D, v: Segment2D | Droite2D) -> float:
-    return float(u[0]*v[1] - u[1]*v[2])
+    return float(u[0] * v[1] - u[1] * v[2])
+
 
 if __name__ == "__main__":
     a = Point2D(1, 2)
