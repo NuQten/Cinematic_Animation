@@ -285,6 +285,17 @@ class Structure2D:
             residus.append((dx**2 + dy**2) - l0**2)
         return residus
 
+
+def segment2structure(element: Structure2D | Segment2D) -> Structure2D:
+
+    if isinstance(element, Structure2D):
+        return element
+    elif isinstance(element, Segment2D):
+        return Structure2D(element)
+    else :
+        raise TypeError(f"Attendu Structure2D ou Segment2D, reçu {type(element).__name__}")
+
+
 if __name__ == '__main__': 
     a = Point2D(1, 2)
     print(a)
