@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import math
-from math import atan2, cos, pi, sin, log10
+from math import atan2, cos, log10, pi, sin
 from typing import overload
 
 import numpy as np
-from .constants import TOLERANCE, DECIMAL
+
+from .constants import DECIMAL, TOLERANCE
 
 
 class Point2D:

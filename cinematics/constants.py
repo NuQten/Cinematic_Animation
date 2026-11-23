@@ -4,3 +4,4 @@ from math import log10
 DISTANCE_UNIT: str = 'm'
 TOLERANCE: float = 1e-7
 DECIMAL: int = int(abs(log10(TOLERANCE)))
+RAYON_LAISON: float = 1.0

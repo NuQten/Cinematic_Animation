@@ -82,14 +82,20 @@ class LiaisonPivot2D(Liaison):
         if self.centre is None:
             raise JonctionError("Les deux segment n'ont pas de point en commun")
 
-    def equations(self) -> list[float]:
-        pt1 = self.segment1.point1 if self.centre == self.segment1.point1 else self.segment1.point2
-        pt2 = self.segment2.point1 if self.centre == self.segment2.point1 else self.segment2.point2
+        self._pt1 = (
+            self.segment1.point1
+            if self.centre == self.segment1.point1
+            else self.segment1.point2
+        )
+        self._pt2 = (
+            self.segment2.point1
+            if self.centre == self.segment2.point1
+            else self.segment2.point2
+        )
 
-        return [
-            pt1.x - pt2.x,
-            pt1.y - pt2.y
-        ]
+    def equations(self) -> list[float]:
+
+        return [self._pt1.x - self._pt2.x, self._pt1.y - self._pt2.y]
 
 
 class LiaisonGlissiere2D(Liaison):
@@ -216,7 +222,7 @@ class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
         pt_rail = self._segment_directeur.point1
         dx = self._point_coulissant.x - pt_rail.x
         dy = self._point_coulissant.y - pt_rail.y
-        v = self.vector_normal 
+        v = self.vector_normal
 
         return [dx * v[0] + dy * v[1]]
 
@@ -240,22 +246,34 @@ class LiaisonEncastrement2D(Liaison):
 
         super().__init__(segment1, segment2, ddl)
 
-        if segment1.is_include(segment2.point1):
-            self._point_jonction = segment2.point1
+        if segment1.point1 == segment2.point1:
+            self._pt1, self._pt2 = segment1.point1, segment2.point1
+        elif segment1.point1 == segment2.point2:
+            self._pt1, self._pt2 = segment1.point1, segment2.point2
+        elif segment1.point2 == segment2.point1:
+            self._pt1, self._pt2 = segment1.point2, segment2.point1
+        elif segment1.point2 == segment2.point2:
+            self._pt1, self._pt2 = segment1.point2, segment2.point2
+        elif segment1.is_include(segment2.point1):
+            self._pt1, self._pt2 = segment1.point1, segment2.point1
         elif segment1.is_include(segment2.point2):
-            self._point_jonction = segment2.point2
+            self._pt1, self._pt2 = segment1.point1, segment2.point2
         elif segment2.is_include(segment1.point1):
-            self._point_jonction = segment1.point1
+            self._pt1, self._pt2 = segment1.point1, segment2.point1
         elif segment2.is_include(segment1.point2):
-            self._point_jonction = segment1.point2
+            self._pt1, self._pt2 = segment1.point2, segment2.point1
         else:
-            raise JonctionError("Un point des segments doit être situé l'autre segment")
+            raise JonctionError(
+                "Un point des segments doit être situé sur l'autre segment"
+            )
+
+        self._point_jonction = self._pt2
 
         # Define initial angle betwenn segment1 et segment2
         u1 = self.segment1.vector_director
         u2 = self.segment2.vector_director
         self._initial_cos = float(u1 @ u2)
-        self._initial_sin = float(u1[0]*u2[1] - u1[1]*u2[0])
+        self._initial_sin = float(u1[0] * u2[1] - u1[1] * u2[0])
 
     @property
     def centre(self) -> Point2D:
@@ -263,19 +281,17 @@ class LiaisonEncastrement2D(Liaison):
 
     def equations(self) -> list[float]:
 
-        pt1 = self.segment1.point1 if self.centre == self.segment1.point1 else self.segment1.point2
-        pt2 = self.segment2.point1 if self.centre == self.segment2.point1 else self.segment2.point2
-
         u1 = self.segment1.vector_director
         u2 = self.segment2.vector_director
-        actuel_sin = u1[0]*u2[1] - u1[1]*u2[0]
+        actuel_sin = u1[0] * u2[1] - u1[1] * u2[0]
 
         return [
-            pt1.x - pt2.x,
-            pt1.y - pt2.y,
-            actuel_sin - self._initial_sin
+            self._pt1.x - self._pt2.x,
+            self._pt1.y - self._pt2.y,
+            actuel_sin - self._initial_sin,
         ]
-    
+
+
 class LiaisonBati2D(LiaisonEncastrement2D):
     @overload
     def __init__(
@@ -319,11 +335,10 @@ class LiaisonBati2D(LiaisonEncastrement2D):
         self._point_jonction = point
 
 
-
 # TODO : Créer liaison ponctuelle si utile (à voir)
 class LiaisonPonctuelle2D(Liaison):
     pass
 
 
-if __name__ == '__main__': 
+if __name__ == "__main__":
     pass
