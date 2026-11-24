@@ -40,8 +40,8 @@ class Liaison(ABC):
     def __str__(self) -> str:
         return f"{self.__class__.__name__} entre {self.structure1.name} et {self.structure2.name} au point {self.centre.name}"
 
-    @abstractmethod
     @property
+    @abstractmethod
     def centre(self) -> Point2D | None:
         """Renvoi le centre de la liaison"""
 
@@ -87,7 +87,7 @@ class LiaisonPivot2D(Liaison):
         self.point2 = p2
 
     @property
-    def center(self) -> Point2D:
+    def centre(self) -> Point2D:
         return self.point1
 
     def equations(self) -> list[float]:
@@ -124,12 +124,12 @@ class LiaisonGlissiere2D(Liaison):
 
         super().__init__(structure_rail, structure_mobile, ddl)
 
-        self.structure_rail = structure_rail
-        self.structure_mobile = structure_mobile
+        self.structure_rail = self.structure1
+        self.structure_mobile = self.structure2
 
         if segment_directeur not in self.structure_rail:
             raise ValueError("Le segment directeur doit être à la structure de guidage")
-        if point_coulissant not in structure_mobile:
+        if point_coulissant not in self.structure_mobile:
             raise ValueError(
                 "Le point coulissant doit appartenir à la structure mobile"
             )
@@ -170,6 +170,9 @@ class LiaisonGlissiere2D(Liaison):
         """Point central représentant la liaison glissière"""
         return self.point_coulissant
 
+    def __str__(self):
+        return f"Liaison glissiere entre {self.structure1} et {self.structure2} avec le rail {self.structure_rail} et le point coulissant {self.point_coulissant}"
+
     def equations(self) -> list[float]:
 
         # 1. Décollement normal : distance projetée sur la normal v
@@ -181,48 +184,52 @@ class LiaisonGlissiere2D(Liaison):
 
         # 2. Orientation relative bloquée
         u_rail = self.segment_directeur.vector_director
-        u_guide = self._ref_segment_guide.vector_director
+        u_guide = self._ref_segment_mobile.vector_director
         dot = u_rail @ u_guide
-        det = u_rail[0] * u_guide[1] - u_rail[1] * u_guide[0]
+        det = det_2_vector2d(u_rail, u_guide)
         actual_theta = atan2(det, dot)
         d_theta = (actual_theta - self._initial_theta + pi) % (2 * pi) - pi
 
         return [decollement, d_theta]
 
 
-# TODO : faire avec la nouvelle methode
 class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
     def __init__(
         self,
-        segment1: Segment2D,
-        segment2: Segment2D,
+        structure1: Structure2D | Segment2D,
+        structure2: Structure2D | Segment2D,
         segment_directeur: Segment2D,
         point_coulissant: Point2D,
     ) -> None:
 
-        super().__init__(segment1, segment2, segment_directeur, point_coulissant)
+        super().__init__(structure1, structure2, segment_directeur, point_coulissant)
 
         self.ddl = np.array(
             [
                 [1, 0],  # Tx, Rx
                 [0, 0],  # Ty, Ry
-                [0, 1],
+                [0, 1],  # Tz, Rz
             ]
-        )  # Tz, Rz
+        )  
 
     def equations(self) -> list[float]:
 
-        pt_rail = self._segment_directeur.point1
-        dx = self._point_coulissant.x - pt_rail.x
-        dy = self._point_coulissant.y - pt_rail.y
+        pt_rail = self.segment_directeur.point1
+        dx = self.point_coulissant.x - pt_rail.x
+        dy = self.point_coulissant.y - pt_rail.y
         v = self.vector_normal
 
         return [dx * v[0] + dy * v[1]]
 
 
-# TODO : faire avec la nouvelle methode
 class LiaisonEncastrement2D(Liaison):
-    def __init__(self, segment1: Segment2D, segment2: Segment2D) -> None:
+    def __init__(
+            self, 
+            structure1: Structure2D | Segment2D, 
+            structure2: Structure2D | Segment2D,
+            point1:Point2D,
+            point2: Point2D | None = None
+    ) -> None:
         """Liaison encastrement 2D reliant deux segments
 
         Args:
@@ -234,76 +241,75 @@ class LiaisonEncastrement2D(Liaison):
             [
                 [0, 0],  # Tx, Rx
                 [0, 0],  # Ty, Ry
-                [0, 0],
+                [0, 0],  # Tz, Rz
             ]
-        )  # Tz, Rz
+        )  
 
-        super().__init__(segment1, segment2, ddl)
+        super().__init__(structure1, structure2, ddl)
 
-        if segment1.point1 == segment2.point1:
-            self._pt1, self._pt2 = segment1.point1, segment2.point1
-        elif segment1.point1 == segment2.point2:
-            self._pt1, self._pt2 = segment1.point1, segment2.point2
-        elif segment1.point2 == segment2.point1:
-            self._pt1, self._pt2 = segment1.point2, segment2.point1
-        elif segment1.point2 == segment2.point2:
-            self._pt1, self._pt2 = segment1.point2, segment2.point2
-        elif segment1.is_include(segment2.point1):
-            self._pt1, self._pt2 = segment1.point1, segment2.point1
-        elif segment1.is_include(segment2.point2):
-            self._pt1, self._pt2 = segment1.point1, segment2.point2
-        elif segment2.is_include(segment1.point1):
-            self._pt1, self._pt2 = segment1.point1, segment2.point1
-        elif segment2.is_include(segment1.point2):
-            self._pt1, self._pt2 = segment1.point2, segment2.point1
-        else:
-            raise JonctionError(
-                "Un point des segments doit être situé sur l'autre segment"
-            )
+        self.point1 = point1
+        self.point2 = point2 if point2 is not None else point1
 
-        self._point_jonction = self._pt2
+        if self.point1 not in self.structure1:
+            raise JonctionError(f"Le point {self.point1} n'appartient pas à la structure 1")
+        if self.point2 not in self.structure2:
+            raise JonctionError(f"Le point {self.point2} n'appartient pas à la structure 2")
+        if self.point1 != self.point2:
+            raise JonctionError("Les points d'encastrement doivent être initialement superposés")
+
+        self._ref_seg1 = self.structure1.segments[0]
+        self._ref_seg2 = self.structure2.segments[0]
 
         # Define initial angle betwenn segment1 et segment2
-        u1 = self.segment1.vector_director
-        u2 = self.segment2.vector_director
-        self._initial_cos = float(u1 @ u2)
-        self._initial_sin = float(u1[0] * u2[1] - u1[1] * u2[0])
+        u1 = self._ref_seg1.vector_director
+        u2 = self._ref_seg2.vector_director
+        dot = u1 @ u2
+        det = det_2_vector2d(u1, u2)
+        self._initial_theta = atan2(det, dot)
 
     @property
     def centre(self) -> Point2D:
-        return self._point_jonction
+        return self.point1
 
     def equations(self) -> list[float]:
 
-        u1 = self.segment1.vector_director
-        u2 = self.segment2.vector_director
-        actuel_sin = u1[0] * u2[1] - u1[1] * u2[0]
+        u1 = self._ref_seg1.vector_director
+        u2 = self._ref_seg2.vector_director
+        dot = u1 @ u2
+        det = det_2_vector2d(u1, u2)
+        actuel_theta = atan2(det, dot)
+        rotation = (actuel_theta - self._initial_theta + pi)%(2*pi) - pi
 
         return [
-            self._pt1.x - self._pt2.x,
-            self._pt1.y - self._pt2.y,
-            actuel_sin - self._initial_sin,
+            self.point1.x - self.point2.x,
+            self.point1.y - self.point2.y,
+            rotation,
         ]
 
 
-# TODO : faire avec la nouvelle methode
 class LiaisonBati2D(LiaisonEncastrement2D):
     @overload
     def __init__(
-        self, segment: Segment2D, point: Point2D, axe: Literal["x", "y"] = "x"
+        self, structure: Structure2D |Segment2D, point: Point2D, axe: Literal["x", "y"] = "x"
     ) -> None: ...
 
     @overload
     def __init__(
-        self, segment: Segment2D, point: Point2D, angle: float = 0.0
+        self, structure: Structure2D |Segment2D, point: Point2D, angle: float = 0.0
     ) -> None: ...
 
     def __init__(
         self,
-        segment: Segment2D,
+        structure: Structure2D |Segment2D,
         point: Point2D,
         orientation: Literal["x", "y"] | float = "x",
     ):
+
+        self.structure = to_structure2d(structure)
+
+        if point not in self.structure : 
+            raise JonctionError(f"Le point d'ancrage {point} doit appartenir à la structure à encastrer")
+        
 
         # LiaisonBati2D(segment, point, axe)
         axe = orientation
@@ -318,16 +324,16 @@ class LiaisonBati2D(LiaisonEncastrement2D):
         else:
             raise ValueError("L'axe doit être 'x', 'y' ou un angle en radians")
 
-        if not segment.is_include(point):
-            raise JonctionError("Le point d'ancrage du bâti doit appartenir au segment")
 
-        point1 = point.array - 0.5 * u
-        point2 = point.array + 0.5 * u
+        sol_point1 = Point2D(point.array - 0.5 * u, name="Bati_1")
+        sol_point2 = Point2D(point.array + 0.5 * u, name="Bati_2")
+        sol_segment1 = Segment2D(sol_point1, point)
+        sol_segment2 = Segment2D(sol_point2, point)
+        structure_sol = Structure2D(sol_segment1, sol_segment2)
 
-        bati = Segment2D(Point2D(point1), Point2D(point2))
-        super().__init__(segment, bati)
+        super().__init__(structure, structure_sol, point, point)
 
-        self._point_jonction = point
+
 
 
 # TODO : Créer liaison ponctuelle si utile (à voir)

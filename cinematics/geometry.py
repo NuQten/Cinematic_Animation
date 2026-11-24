@@ -191,6 +191,9 @@ class Segment2D(Droite2D):
         p2 = self.point2 == other.point1 and self.point1 == other.point2
         return p1 or p2
 
+    def __hash__(self) -> int:
+        return hash(frozenset({self.point1, self.point2}))
+
     def is_include(self, P):
         """Dit si le point P appartient au segment"""
         if super().is_include(P):
@@ -247,6 +250,7 @@ class Structure2D:
             raise ValueError("Une structure 2D doit contenir au moins un segment")
 
         self.name = name or f"Structure({', '.join(s.name for s in segments)})"
+        self.segments_set = set(segments)
         self.segments = list(segments)
 
         # Define point unique
@@ -277,6 +281,16 @@ class Structure2D:
         else:
             return False
 
+    def __eq__(self, other:object) -> bool:
+        if not isinstance(other, Structure2D):
+            return False 
+        
+        return self.segments_set == other.segments_set
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.segments))
+
+
     def equations(self) -> list[float]:
         residus = []
         for (p1, p2), l0 in self._distances_initiales.items():
@@ -299,7 +313,7 @@ def to_structure2d(element: Structure2D | Segment2D) -> Structure2D:
 
 
 def det_2_vector2d(u: Segment2D | Droite2D, v: Segment2D | Droite2D) -> float:
-    return float(u[0] * v[1] - u[1] * v[2])
+    return float(u[0] * v[1] - u[1] * v[0])
 
 
 if __name__ == "__main__":
