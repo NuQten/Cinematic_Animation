@@ -1,13 +1,22 @@
 from math import log10
 from typing import Literal
 import matplotlib.colors as mcolor
+from enum import IntEnum
 
 ### CONSTANTE ###
 DISTANCE_UNIT: str = "m"
 TOLERANCE: float = 1e-7
 DECIMAL: int = int(abs(log10(TOLERANCE)))
-RAYON_LAISON: float = 1.0
+RAYON_LAISON: float = 0.2
 
+### Z-ORDER ###
+class Zorder(IntEnum):
+
+    STRUCTURE = 3
+    LIAISON = 4
+    SEGMENT_LIAISON = 5
+
+### COLORS Matplotlib ###
 Colors = Literal[
     "aliceblue",
     "antiquewhite",
