@@ -4,6 +4,8 @@ from math import atan2, cos, isclose, pi, sin
 from typing import Literal, overload
 
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 from .errors import JonctionError
 from .geometry import (
@@ -52,8 +54,12 @@ class Liaison(ABC):
     def equations(self) -> list[float]:
         """Retourne les contraintes scalaires de la liaison (doivent valoir 0.0)"""
 
+    @abstractmethod
+    def draw(self, ax: plt.Axes) -> plt.Axes: ...
+
 
 class LiaisonPivot2D(Liaison):
+
     def __init__(
         self,
         structure1: Structure2D | Segment2D,
@@ -95,6 +101,28 @@ class LiaisonPivot2D(Liaison):
 
     def equations(self) -> list[float]:
         return [self.point1.x - self.point2.x, self.point1.y - self.point2.y]
+
+    def draw(self, ax: plt.Axes, rayon: float = 0.3) -> plt.Axes:
+
+        color1 = self.structure1.color
+        color2 = self.structure2.color
+        center = self.centre 
+
+        # 1. Cercle exterieur (structure 1)
+        cercle_ext = patches.Circle((center.array), radius=rayon, facecolor="white", 
+                            edgecolor=color1, linewidth=2, zorder=3)
+        ax.add_patch(cercle_ext)
+
+        # 2. Cercle interieur (structure 2) + segment lié au pivot
+        ax.plot(center.x, center.y, marker="o", markersize=5, color=color2, zorder=4)
+        for segment in self.structure2.segments : 
+            if center in segment : 
+                segment.draw(ax, color2)
+        
+        return ax
+
+
+        
 
 
 class LiaisonGlissiere2D(Liaison):
