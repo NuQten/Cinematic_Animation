@@ -153,7 +153,7 @@ class Droite2D:
 
 
 class Segment2D(Droite2D):
-    def __init__(self, point1: Point2D, point2: Point2D):
+    def __init__(self, point1: Point2D, point2: Point2D, color: Colors = Colors['black']):
 
         if point1 == point2:
             raise ValueError("Les deux points doivent être différent")
@@ -163,6 +163,7 @@ class Segment2D(Droite2D):
         n1 = point1.name or "?"
         n2 = point2.name or "?"
         self.name = f"[{n1} {n2}]"
+        self.color = color
 
     @property
     def longeur(self):
@@ -196,6 +197,9 @@ class Segment2D(Droite2D):
 
     def __hash__(self) -> int:
         return hash(frozenset({self.point1, self.point2}))
+
+    def __contains__(self, item):
+        return item == self.point1 or item == self.point2
 
     def is_include(self, P):
         """Dit si le point P appartient au segment"""
@@ -245,8 +249,8 @@ class Segment2D(Droite2D):
         else:
             return min(P.distance(self.point1), P.distance(self.point2))
 
-    def draw(self, ax: plt.Axes, color: Colors) -> plt.Axes:
-
+    def draw(self, ax: plt.Axes, color: Colors|None = None) -> plt.Axes:
+        color = color or self.color
         x_values = [self.point1.x, self.point2.y]
         y_values = [self.point1.x, self.point2.y]
         ax.plot(x_values, y_values, color= color, linewidth = 2)
@@ -256,12 +260,13 @@ class Segment2D(Droite2D):
 
 
 class Structure2D:
-    def __init__(self, *segments: Segment2D, name: str | None = None) -> None:
+    def __init__(self, *segments: Segment2D, name: str | None = None, color: Colors = Colors['black']) -> None:
 
         if len(segments) == 0:
             raise ValueError("Une structure 2D doit contenir au moins un segment")
 
         self.name = name or f"Structure({', '.join(s.name for s in segments)})"
+        self.color = color
         self.segments_set = set(segments)
         self.segments = list(segments)
 
@@ -310,12 +315,12 @@ class Structure2D:
             residus.append((dx**2 + dy**2) - l0**2)
         return residus
 
-    def draw(self, ax: plt.Axes, color: Colors) -> plt.Axes:
+    def draw(self, ax: plt.Axes, color: Colors | None = None) -> plt.Axes:
 
         print_segment = [
             [(point1.x, point1.y), (point2.x, point2.y)] for points in self.segments for point1, point2 in points
         ]
-        color_segment = [color for i in range(len(self.segments))]
+        color_segment = [color or self.color for i in range(len(self.segments))]
         lc = LineCollection(print_segment, colors=color_segment, linewidths=2)
         ax.add_collection(lc)
 
