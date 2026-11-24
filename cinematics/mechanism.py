@@ -6,6 +6,7 @@ from scipy import optimize
 from .geometry import Point2D, Structure2D, Segment2D, to_structure2d
 from .joints import Liaison, LiaisonBati2D
 from .motors import Motor
+from .constants import Colors
 
 
 class Mechanism:
@@ -44,6 +45,8 @@ class Mechanism:
 
         self.X = None
 
+        self.colors = [structure.color for structure in self.structures]
+
     def _update_positions(self, X: np.ndarray) -> None:
         for i, point in enumerate(self.points_mobiles):
             point.x = float(X[2 * i])
@@ -76,3 +79,19 @@ class Mechanism:
             return True
 
         return False
+
+    def draw(self, ax: plt.Axes, color: list[Colors]|None = None) -> plt.Axes:
+
+        for i, structure in enumerate(self.structures) : 
+            structure.draw(ax, self.colors[i])
+
+        for liaison in self.liaisons : 
+            liaison.draw(ax)
+
+        return ax
+
+if __name__ == '__main__': 
+
+    pass
+
+
