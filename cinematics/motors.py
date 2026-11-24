@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from math import atan2, pi
 from .geometry import Point2D, Segment2D, Structure2D, to_structure2d, det_2_vector2d
 
-class Actuator(ABC):
+class Motor(ABC):
 
     @abstractmethod
     def set_target(self, value: float) -> None: ...
@@ -11,7 +11,7 @@ class Actuator(ABC):
     def equations(self) -> list[float]: ...
 
 
-class MotorRotatif2D(Actuator): 
+class MotorRotatif2D(Motor): 
 
     def __init__(self, segment: Segment2D, angle_initial: float = 0.0) -> None:
 
@@ -27,9 +27,10 @@ class MotorRotatif2D(Actuator):
 
         d_theta = (actuel_angle - self.target_angle + pi)%(2*pi) - pi
 
-        return d_theta
+        return [d_theta]
 
-class MotorLinear2D(Actuator):
+
+class MotorLinear2D(Motor):
 
     def __init__(
             self, 

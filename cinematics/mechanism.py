@@ -5,15 +5,20 @@ from scipy import optimize
 
 from .geometry import Point2D, Structure2D, Segment2D, to_structure2d
 from .joints import Liaison, LiaisonBati2D
+from .motors import Motor
 
 
 class Mechanism:
     def __init__(
-        self, structures: list[Structure2D | Segment2D], liaisons: list[Liaison]
+        self, 
+        structures: list[Structure2D | Segment2D], 
+        liaisons: list[Liaison],
+        motors : list[Motor]|None = None
     ) -> None:
 
         self.structures = [to_structure2d(s) for s in structures]
         self.liaisons = liaisons
+        self.motors = motors or []
 
         # Identifie tout les points du mecanisme
         all_points = set()
@@ -36,7 +41,7 @@ class Mechanism:
         self.X0 = np.array(
             [coord for point in self.points_mobiles for coord in (point.x, point.y)]
         )
-        
+
         self.X = None
 
     def _update_positions(self, X: np.ndarray) -> None:
@@ -55,6 +60,9 @@ class Mechanism:
         # 2. Contraintes cinématique des liaisons
         for liaison in self.liaisons:
             residus.extend(liaison.equations())
+
+        for motor in self.motors:
+            residus.extend(motor.equations())
 
         return residus
 

@@ -10,3 +10,4 @@ from .joints import (
     LiaisonPivotGlissant2D,
 )
 from .mechanism import Mechanism
+from .motors import Motor, MotorLinear2D, MotorRotatif2D
