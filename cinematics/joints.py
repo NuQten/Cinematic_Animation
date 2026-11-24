@@ -1,11 +1,12 @@
 import math  
 from abc import ABC, abstractmethod
-from math import atan2, cos, isclose, pi, sin 
+from math import atan2, cos, isclose, pi, sin, degrees
 from typing import Literal, overload
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.transforms as transforms
 
 from .errors import JonctionError
 from .geometry import (
@@ -122,9 +123,6 @@ class LiaisonPivot2D(Liaison):
         return ax
 
 
-        
-
-
 class LiaisonGlissiere2D(Liaison):
     def __init__(
         self,
@@ -222,6 +220,35 @@ class LiaisonGlissiere2D(Liaison):
         d_theta = (actual_theta - self._initial_theta + pi) % (2 * pi) - pi
 
         return [decollement, d_theta]
+
+    def draw(self, ax: plt.Axes, longeur: float = 0.8, largeur: float = 0.35) -> plt.Axes: 
+
+        centre = self.centre
+        angle_x_rad = self.angle_from_ux
+        angle_x_deg = degrees(angle_x_rad)
+        color2 = self.structure_mobile.color
+
+        # 1. Rotation
+        rotation = transforms.Affine2D().rotate_deg_around(centre.x, centre.y, angle_x_deg)
+
+        # 2. Rectangle 
+        bas_gauche = (centre.x - longeur/2, centre.y - largeur/2)
+        rect = patches.Rectangle(
+            bas_gauche, 
+            width=longeur, 
+            height=largeur, 
+            facecolor="white", 
+            edgecolor=color2, 
+            linewidth=2, 
+            zorder=3, 
+            transform=rotation)
+
+        ax.add_patch(rect)
+
+        return ax
+
+
+
 
 
 class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
