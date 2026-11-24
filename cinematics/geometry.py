@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 
-from .constants import DECIMAL, TOLERANCE, Colors
+from .constants import DECIMAL, TOLERANCE, Colors, Zorder
 
 
 class Point2D:
@@ -153,7 +153,7 @@ class Droite2D:
 
 
 class Segment2D(Droite2D):
-    def __init__(self, point1: Point2D, point2: Point2D, color: Colors = Colors['black']):
+    def __init__(self, point1: Point2D, point2: Point2D, color: Colors = 'black'):
 
         if point1 == point2:
             raise ValueError("Les deux points doivent être différent")
@@ -249,18 +249,18 @@ class Segment2D(Droite2D):
         else:
             return min(P.distance(self.point1), P.distance(self.point2))
 
-    def draw(self, ax: plt.Axes, color: Colors|None = None) -> plt.Axes:
+    def draw(self, ax: plt.Axes, color: Colors|None = None, **kwargs) -> plt.Axes:
         color = color or self.color
-        x_values = [self.point1.x, self.point2.y]
-        y_values = [self.point1.x, self.point2.y]
-        ax.plot(x_values, y_values, color= color, linewidth = 2)
+        x_values = [self.point1.x, self.point2.x]
+        y_values = [self.point1.y, self.point2.y]
+        ax.plot(x_values, y_values, color= color, linewidth = 2, **kwargs)
 
         return ax
 
 
 
 class Structure2D:
-    def __init__(self, *segments: Segment2D, name: str | None = None, color: Colors = Colors['black']) -> None:
+    def __init__(self, *segments: Segment2D, name: str | None = None, color: Colors = 'black') -> None:
 
         if len(segments) == 0:
             raise ValueError("Une structure 2D doit contenir au moins un segment")
@@ -318,8 +318,9 @@ class Structure2D:
     def draw(self, ax: plt.Axes, color: Colors | None = None) -> plt.Axes:
 
         print_segment = [
-            [(point1.x, point1.y), (point2.x, point2.y)] for points in self.segments for point1, point2 in points
-        ]
+            [(segment.point1.x, segment.point1.y), 
+             (segment.point2.x, segment.point2.y)] 
+            for segment in self.segments]
         color_segment = [color or self.color for i in range(len(self.segments))]
         lc = LineCollection(print_segment, colors=color_segment, linewidths=2)
         ax.add_collection(lc)

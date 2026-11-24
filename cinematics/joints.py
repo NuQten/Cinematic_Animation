@@ -9,6 +9,7 @@ import matplotlib.patches as patches
 import matplotlib.transforms as transforms
 
 from .errors import JonctionError
+from .constants import Zorder, RAYON_LAISON
 from .geometry import (
     Droite2D, 
     Point2D,
@@ -103,22 +104,54 @@ class LiaisonPivot2D(Liaison):
     def equations(self) -> list[float]:
         return [self.point1.x - self.point2.x, self.point1.y - self.point2.y]
 
-    def draw(self, ax: plt.Axes, rayon: float = 0.3) -> plt.Axes:
+    def draw(self, ax: plt.Axes, rayon: float = RAYON_LAISON) -> plt.Axes:
 
         color1 = self.structure1.color
         color2 = self.structure2.color
-        center = self.centre 
+        centre = self.centre 
 
         # 1. Cercle exterieur (structure 1)
-        cercle_ext = patches.Circle((center.array), radius=rayon, facecolor="white", 
-                            edgecolor=color1, linewidth=2, zorder=3)
+        cercle_ext = patches.Circle(
+                    (centre.array), 
+                    radius=rayon, 
+                    facecolor=color1, 
+                    zorder=Zorder.LIAISON)
         ax.add_patch(cercle_ext)
 
-        # 2. Cercle interieur (structure 2) + segment lié au pivot
-        ax.plot(center.x, center.y, marker="o", markersize=5, color=color2, zorder=4)
-        for segment in self.structure2.segments : 
-            if center in segment : 
-                segment.draw(ax, color2)
+        # 2. Blanc entre les deux segments
+        cercle_blanc = patches.Circle(
+            (centre.array), 
+            radius=rayon * 0.8, 
+            facecolor="white", 
+            zorder=Zorder.LIAISON)
+        ax.add_patch(cercle_blanc)
+
+        # 3. Cercle interieur (structure 2) + segment lié au pivot
+        cercle_int = patches.Circle(
+            (centre.array), 
+            radius=rayon*0.6, 
+            facecolor=color2, 
+            zorder=Zorder.LIAISON)
+        ax.add_patch(cercle_int)
+
+        # 4. Segment allant jusqu'au point central
+        vectors_pt = []
+        for segment in self.structure2.segments:
+            if centre in segment : 
+                if centre == segment.point1:
+                    vectors_pt.append((segment.vector_director, False))
+                else : 
+                    vectors_pt.append((segment.vector_director, True))
+
+        for u, minus in vectors_pt :
+            if minus : 
+                x = [centre.x - u[0]*rayon, centre.x]
+                y = [centre.y - u[1]*rayon, centre.y]
+            else :  
+                x = [centre.x + u[0]*rayon, centre.x]
+                y = [centre.y + u[1]*rayon, centre.y]
+
+            ax.plot(x, y, color= color2, linewidth = 2, zorder = Zorder.SEGMENT_LIAISON)
         
         return ax
 
@@ -221,7 +254,12 @@ class LiaisonGlissiere2D(Liaison):
 
         return [decollement, d_theta]
 
-    def draw(self, ax: plt.Axes, longeur: float = 0.8, largeur: float = 0.35) -> plt.Axes: 
+    def draw(
+            self, 
+            ax: plt.Axes, 
+            longeur: float = 4*RAYON_LAISON, 
+            largeur: float = 2*RAYON_LAISON
+    ) -> plt.Axes: 
 
         centre = self.centre
         angle_x_rad = self.angle_from_ux
@@ -229,38 +267,47 @@ class LiaisonGlissiere2D(Liaison):
         color2 = self.structure_mobile.color
 
         # 1. Rotation
-        rotation = transforms.Affine2D().rotate_deg_around(centre.x, centre.y, angle_x_deg)
+        rotation = transforms.Affine2D().rotate_deg_around(centre.x, centre.y, angle_x_deg) + ax.transData
 
-        # 2. Rectangle 
+        # 2. Rectangle couleur
         bas_gauche = (centre.x - longeur/2, centre.y - largeur/2)
         rect = patches.Rectangle(
             bas_gauche, 
             width=longeur, 
             height=largeur, 
-            facecolor="white", 
-            edgecolor=color2, 
-            linewidth=2, 
-            zorder=3, 
+            facecolor=color2,
+            zorder=Zorder.LIAISON,   
             transform=rotation)
+        ax.add_patch(rect)
 
+        # 3. Interieur rectangle blanc
+        d_side = 0.2*min(longeur, largeur)
+        longeur -= d_side
+        largeur -= d_side
+        bas_gauche = (centre.x - longeur/2, centre.y - largeur/2)
+        rect = patches.Rectangle(
+            bas_gauche, 
+            width=longeur, 
+            height=largeur, 
+            facecolor="white",
+            zorder=Zorder.LIAISON, 
+            transform=rotation)
         ax.add_patch(rect)
 
         return ax
 
 
-
-
-
+# TODO : Faire fonction draw
 class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
     def __init__(
         self,
-        structure1: Structure2D | Segment2D,
-        structure2: Structure2D | Segment2D,
+        structure_rail: Structure2D | Segment2D,
+        structure_mobile: Structure2D | Segment2D,
         segment_directeur: Segment2D,
         point_coulissant: Point2D,
     ) -> None:
 
-        super().__init__(structure1, structure2, segment_directeur, point_coulissant)
+        super().__init__(structure_rail, structure_mobile, segment_directeur, point_coulissant)
 
         self.ddl = np.array(
             [
@@ -279,7 +326,97 @@ class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
 
         return [dx * v[0] + dy * v[1]]
 
+    def draw(
+            self, 
+            ax: plt.Axes, 
+            longeur: float = 4*RAYON_LAISON, 
+            largeur: float = 2*RAYON_LAISON,
+            rayon: float = RAYON_LAISON
+    ) -> plt.Axes: 
 
+        centre = self.centre
+        angle_x_rad = self.angle_from_ux
+        angle_x_deg = degrees(angle_x_rad)
+        color1 = self.structure_rail.color
+        color2 = self.structure_mobile.color
+
+        # 1. Rotation
+        rotation = transforms.Affine2D().rotate_deg_around(centre.x, centre.y, angle_x_deg) + ax.transData
+
+        # 2. Rectangle couleur
+        bas_gauche = (centre.x - longeur/2, centre.y - largeur/2)
+        rect = patches.Rectangle(
+            bas_gauche, 
+            width=longeur, 
+            height=largeur, 
+            facecolor=color2,
+            zorder=Zorder.LIAISON,   
+            transform=rotation)
+        ax.add_patch(rect)
+
+        # 3. Interieur rectangle blanc
+        d_side = 0.2*min(longeur, largeur)
+        longeur -= d_side
+        largeur -= d_side
+        bas_gauche = (centre.x - longeur/2, centre.y - largeur/2)
+        rect = patches.Rectangle(
+            bas_gauche, 
+            width=longeur, 
+            height=largeur, 
+            facecolor="white",
+            zorder=Zorder.LIAISON, 
+            transform=rotation)
+        ax.add_patch(rect)
+
+        # 4. Cercle exterieur (structure 1)
+        cercle_ext = patches.Circle(
+                    (centre.array), 
+                    radius=rayon, 
+                    facecolor=color2, 
+                    zorder=Zorder.LIAISON)
+        ax.add_patch(cercle_ext)
+
+        # 5. Blanc entre les deux segments
+        cercle_blanc = patches.Circle(
+            (centre.array), 
+            radius=rayon * 0.8, 
+            facecolor="white", 
+            zorder=Zorder.LIAISON)
+        ax.add_patch(cercle_blanc)
+
+        # 6. Cercle interieur (structure 2) + segment lié au pivot
+        cercle_int = patches.Circle(
+            (centre.array), 
+            radius=rayon*0.6, 
+            facecolor=color1, 
+            zorder=Zorder.LIAISON)
+        ax.add_patch(cercle_int)
+
+        # 7. Segment allant jusqu'au point central
+        vectors_pt = []
+        for segment in self.structure_mobile.segments:
+            if self.point_coulissant in segment : 
+                if self.point_coulissant == segment.point1:
+                    vectors_pt.append((segment.vector_director, False))
+                else : 
+                    vectors_pt.append((segment.vector_director, True))
+        
+        distance = (largeur**2 + longeur**2)**0.5
+        for u, minus in vectors_pt :
+            dot = u @ self.vector_director
+            det = det_2_vector2d(u , self.vector_director)
+            angle = atan2(det, dot)
+            if minus : 
+                x = [centre.x - u[0]*distance, centre.x - rayon*cos(angle)]
+                y = [centre.y - u[1]*distance, centre.y + rayon*sin(angle)]
+            else : 
+                x = [centre.x + u[0]*distance, centre.x - rayon*cos(angle)] #BUG : Voir si sur point2 vecteur pas inverser avec cos et sin
+                y = [centre.y + u[1]*distance, centre.y + rayon*sin(angle)]
+            ax.plot(x, y, color= color2, linewidth = 2, zorder = Zorder.SEGMENT_LIAISON)
+        
+        return ax
+
+# TODO : Ajuste fonction draw
 class LiaisonEncastrement2D(Liaison):
     def __init__(
             self, 
@@ -344,7 +481,24 @@ class LiaisonEncastrement2D(Liaison):
             rotation,
         ]
 
+    def draw(self, ax: plt.Axes, largeur: float = 0.35) -> plt.Axes:
 
+        centre = self.centre
+        bas_gauche = (centre.x - largeur/2, centre.y - largeur/2)
+        carre = patches.Rectangle(
+            bas_gauche, 
+            largeur, 
+            largeur, 
+            facecolor="white", 
+            edgecolor="black", 
+            linewidth=2, 
+            zorder=3)
+
+        ax.add_patch(carre)
+        
+
+
+# TODO : Faire fonction draw
 class LiaisonBati2D(LiaisonEncastrement2D):
     @overload
     def __init__(
