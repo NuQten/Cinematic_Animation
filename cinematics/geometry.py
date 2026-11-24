@@ -5,8 +5,10 @@ from math import atan2, cos, log10, pi, sin
 from typing import overload
 
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 
-from .constants import DECIMAL, TOLERANCE
+from .constants import DECIMAL, TOLERANCE, Colors
 
 
 class Point2D:
@@ -90,6 +92,7 @@ class Droite2D:
 
         self.point1 = point1
         self.point2 = point2
+        self.points = (point1, point2)
 
     @property
     def vector_director(self) -> np.ndarray:
@@ -242,6 +245,15 @@ class Segment2D(Droite2D):
         else:
             return min(P.distance(self.point1), P.distance(self.point2))
 
+    def draw(self, ax: plt.Axes, color: Colors) -> plt.Axes:
+
+        x_values = [self.point1.x, self.point2.y]
+        y_values = [self.point1.x, self.point2.y]
+        ax.plot(x_values, y_values, color= color, linewidth = 2)
+
+        return ax
+
+
 
 class Structure2D:
     def __init__(self, *segments: Segment2D, name: str | None = None) -> None:
@@ -290,7 +302,6 @@ class Structure2D:
     def __hash__(self) -> int:
         return hash(frozenset(self.segments))
 
-
     def equations(self) -> list[float]:
         residus = []
         for (p1, p2), l0 in self._distances_initiales.items():
@@ -298,6 +309,17 @@ class Structure2D:
             dy = p2.y - p1.y
             residus.append((dx**2 + dy**2) - l0**2)
         return residus
+
+    def draw(self, ax: plt.Axes, color: Colors) -> plt.Axes:
+
+        print_segment = [
+            [(point1.x, point1.y), (point2.x, point2.y)] for points in self.segments for point1, point2 in points
+        ]
+        color_segment = [color for i in range(len(self.segments))]
+        lc = LineCollection(print_segment, colors=color_segment, linewidths=2)
+        ax.add_collection(lc)
+
+        return ax
 
 
 def to_structure2d(element: Structure2D | Segment2D) -> Structure2D:
@@ -310,7 +332,6 @@ def to_structure2d(element: Structure2D | Segment2D) -> Structure2D:
         raise TypeError(
             f"Attendu Structure2D ou Segment2D, reçu {type(element).__name__}"
         )
-
 
 def det_2_vector2d(u: Segment2D | Droite2D, v: Segment2D | Droite2D) -> float:
     return float(u[0] * v[1] - u[1] * v[0])
