@@ -9,3 +9,4 @@ from .joints import (
     LiaisonPivot2D,
     LiaisonPivotGlissant2D,
 )
+from .mechanism import Mechanism

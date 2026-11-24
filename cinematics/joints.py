@@ -18,8 +18,11 @@ from .geometry import (
 
 class Liaison(ABC):
     def __init__(
-        self, structure1: Structure2D, structure2: Structure2D, ddl: np.ndarray
-    ):
+        self, 
+        structure1: Structure2D | Segment2D, 
+        structure2: Structure2D | Segment2D, 
+        ddl: np.ndarray
+    ) -> None:
 
         self.structure1 = to_structure2d(structure1)
         self.structure2 = to_structure2d(structure2)
@@ -53,8 +56,8 @@ class Liaison(ABC):
 class LiaisonPivot2D(Liaison):
     def __init__(
         self,
-        structure1: Structure2D,
-        structure2: Structure2D,
+        structure1: Structure2D | Segment2D,
+        structure2: Structure2D | Segment2D,
         point1: Point2D,
         point2: Point2D | None = None,
     ) -> None:
@@ -171,7 +174,7 @@ class LiaisonGlissiere2D(Liaison):
         return self.point_coulissant
 
     def __str__(self):
-        return f"Liaison glissiere entre {self.structure1} et {self.structure2} avec le rail {self.structure_rail} et le point coulissant {self.point_coulissant}"
+        return f"Liaison glissiere entre {self.structure1} et {self.structure2} avec le rail {self.segment_directeur} et le point coulissant {self.point_coulissant}"
 
     def equations(self) -> list[float]:
 
@@ -332,6 +335,9 @@ class LiaisonBati2D(LiaisonEncastrement2D):
         structure_sol = Structure2D(sol_segment1, sol_segment2)
 
         super().__init__(structure, structure_sol, point, point)
+
+        self.bati = self.structure2
+
 
 
 
