@@ -80,7 +80,7 @@ class Mechanism:
 
         return False
 
-    def draw(self, ax: plt.Axes, color: list[Colors]|None = None) -> plt.Axes:
+    def draw(self, ax: plt.Axes) -> plt.Axes:
 
         for i, structure in enumerate(self.structures) : 
             structure.draw(ax, self.colors[i])

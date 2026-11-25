@@ -153,7 +153,7 @@ class Droite2D:
 
 
 class Segment2D(Droite2D):
-    def __init__(self, point1: Point2D, point2: Point2D, color: Colors = 'black'):
+    def __init__(self, point1: Point2D, point2: Point2D, color: Colors = Colors.BLACK):
 
         if point1 == point2:
             raise ValueError("Les deux points doivent être différent")
@@ -260,7 +260,7 @@ class Segment2D(Droite2D):
 
 
 class Structure2D:
-    def __init__(self, *segments: Segment2D, name: str | None = None, color: Colors = 'black') -> None:
+    def __init__(self, *segments: Segment2D, name: str | None = None, color: Colors = Colors.BLACK) -> None:
 
         if len(segments) == 0:
             raise ValueError("Une structure 2D doit contenir au moins un segment")
