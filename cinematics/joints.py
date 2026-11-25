@@ -9,7 +9,7 @@ import matplotlib.patches as patches
 import matplotlib.transforms as transforms
 
 from .errors import JonctionError
-from .constants import Zorder, RAYON_LAISON
+from .constants import Zorder, Colors, RAYON_LAISON
 from .geometry import (
     Droite2D, 
     Point2D,
@@ -122,7 +122,7 @@ class LiaisonPivot2D(Liaison):
         cercle_blanc = patches.Circle(
             (centre.array), 
             radius=rayon * 0.8, 
-            facecolor="white", 
+            facecolor=Colors.WHITE, 
             zorder=Zorder.LIAISON)
         ax.add_patch(cercle_blanc)
 
@@ -289,7 +289,7 @@ class LiaisonGlissiere2D(Liaison):
             bas_gauche, 
             width=longeur, 
             height=largeur, 
-            facecolor="white",
+            facecolor= Colors.WHITE,
             zorder=Zorder.LIAISON, 
             transform=rotation)
         ax.add_patch(rect)
@@ -297,7 +297,6 @@ class LiaisonGlissiere2D(Liaison):
         return ax
 
 
-# TODO : Faire fonction draw
 class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
     def __init__(
         self,
@@ -363,7 +362,7 @@ class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
             bas_gauche, 
             width=longeur, 
             height=largeur, 
-            facecolor="white",
+            facecolor= Colors.WHITE,
             zorder=Zorder.LIAISON, 
             transform=rotation)
         ax.add_patch(rect)
@@ -380,7 +379,7 @@ class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
         cercle_blanc = patches.Circle(
             (centre.array), 
             radius=rayon * 0.8, 
-            facecolor="white", 
+            facecolor= Colors.WHITE, 
             zorder=Zorder.LIAISON)
         ax.add_patch(cercle_blanc)
 
@@ -403,16 +402,22 @@ class LiaisonPivotGlissant2D(LiaisonGlissiere2D):
         
         distance = (largeur**2 + longeur**2)**0.5
         for u, minus in vectors_pt :
-            dot = u @ self.vector_director
-            det = det_2_vector2d(u , self.vector_director)
-            angle = atan2(det, dot)
-            if minus : 
-                x = [centre.x - u[0]*distance, centre.x - rayon*cos(angle)]
-                y = [centre.y - u[1]*distance, centre.y + rayon*sin(angle)]
-            else : 
-                x = [centre.x + u[0]*distance, centre.x - rayon*cos(angle)] #BUG : Voir si sur point2 vecteur pas inverser avec cos et sin
-                y = [centre.y + u[1]*distance, centre.y + rayon*sin(angle)]
-            ax.plot(x, y, color= color2, linewidth = 2, zorder = Zorder.SEGMENT_LIAISON)
+            # u est le vector_director du segment (normalisé, repère monde).
+            # Le point sur le bord du cercle est simplement centre ± rayon*u.
+            # Si minus=True  → le point coulissant est point2 du segment, donc
+            #   le segment part vers -u depuis le centre : border est à -u.
+            # Si minus=False → le segment part vers +u depuis le centre : border est à +u.
+            if minus:
+                border_x = centre.x - rayon * u[0]
+                border_y = centre.y - rayon * u[1]
+                x = [centre.x - u[0]*distance, border_x]
+                y = [centre.y - u[1]*distance, border_y]
+            else:
+                border_x = centre.x + rayon * u[0]
+                border_y = centre.y + rayon * u[1]
+                x = [centre.x + u[0]*distance, border_x]
+                y = [centre.y + u[1]*distance, border_y]
+            ax.plot(x, y, color=color2, linewidth=2, zorder=Zorder.SEGMENT_LIAISON)
         
         return ax
 
@@ -481,18 +486,17 @@ class LiaisonEncastrement2D(Liaison):
             rotation,
         ]
 
-    def draw(self, ax: plt.Axes, largeur: float = 0.35) -> plt.Axes:
+    def draw(self, ax: plt.Axes, largeur: float = 2*RAYON_LAISON) -> plt.Axes:
 
         centre = self.centre
         bas_gauche = (centre.x - largeur/2, centre.y - largeur/2)
         carre = patches.Rectangle(
             bas_gauche, 
-            largeur, 
-            largeur, 
-            facecolor="white", 
-            edgecolor="black", 
-            linewidth=2, 
-            zorder=3)
+            width= largeur, 
+            height= largeur, 
+            facecolor= Colors.BLACK,
+            zorder=Zorder.LIAISON
+        )
 
         ax.add_patch(carre)
         
@@ -537,8 +541,8 @@ class LiaisonBati2D(LiaisonEncastrement2D):
             raise ValueError("L'axe doit être 'x', 'y' ou un angle en radians")
 
 
-        sol_point1 = Point2D(point.array - 0.5 * u, name="Bati_1")
-        sol_point2 = Point2D(point.array + 0.5 * u, name="Bati_2")
+        sol_point1 = Point2D(point.array - RAYON_LAISON * u, name="Bati_1")
+        sol_point2 = Point2D(point.array + RAYON_LAISON * u, name="Bati_2")
         sol_segment1 = Segment2D(sol_point1, point)
         sol_segment2 = Segment2D(sol_point2, point)
         structure_sol = Structure2D(sol_segment1, sol_segment2)
@@ -547,8 +551,33 @@ class LiaisonBati2D(LiaisonEncastrement2D):
 
         self.bati = self.structure2
 
+    def draw(self, ax: plt.Axes, longeur: float = RAYON_LAISON, angle: float = pi/4) -> plt.Axes : 
 
+        color = self.structure.color
+        u = self.bati.segments[0].vector_director
+        v = [u[0]*cos(angle) - u[1]*sin(angle),
+                         u[0]*sin(angle) + u[1]*cos(angle)]
+        p1 = self.bati.points[1]
+        p2 = self.bati.points[2]
 
+        # 1. Segment de base
+        ax.plot(
+            [p1.x, p2.x], 
+            [p1.y, p2.y], 
+            color= color, 
+            linewidth=2, 
+            zorder=Zorder.SEGMENT_LIAISON
+            )
+
+        # 2. 3 Tirets
+        for pt in self.bati.points : 
+            ax.plot(
+                [pt.x, pt.x + longeur*v[0]],
+                [pt.y, pt.y + longeur*v[1]],
+                color= color,
+                linewidth = 2, 
+                zorder = Zorder.LIAISON
+            )
 
 
 # TODO : Créer liaison ponctuelle si utile (à voir)
