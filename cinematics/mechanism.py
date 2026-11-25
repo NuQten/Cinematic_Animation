@@ -6,7 +6,7 @@ from scipy import optimize
 from .geometry import Point2D, Structure2D, Segment2D, to_structure2d
 from .joints import Liaison, LiaisonBati2D
 from .motors import Motor
-from .constants import Colors
+from .constants import Colors, Statut
 
 
 class Mechanism:
@@ -47,6 +47,29 @@ class Mechanism:
 
         self.colors = [structure.color for structure in self.structures]
 
+    @property
+    def state(self) -> Statut:
+
+        Ic = 0 
+        nb_liaison = 0
+        for liaison in self.liaisons : 
+            Ic += liaison.nb_ddl
+            if not isinstance(LiaisonBati2D):
+                nb_liaison += 1
+
+        gamma = nb_liaison - (len(self.structures)+1) + 1
+        Es = 3*gamma # 3 car 2D, 6 si 3D 
+
+        m = len(self.motors)
+        h = m - Ic + Es
+
+        if h == 0 : 
+            return Statut.ISOSTATIC
+        elif h > 0 : 
+            return Statut.HYPERSTATIC
+        else : 
+            return Statut.HYPOSTATIC
+        
     def _update_positions(self, X: np.ndarray) -> None:
         for i, point in enumerate(self.points_mobiles):
             point.x = float(X[2 * i])
