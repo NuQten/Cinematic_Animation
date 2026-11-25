@@ -9,6 +9,11 @@ TOLERANCE: float = 1e-7
 DECIMAL: int = int(abs(log10(TOLERANCE)))
 RAYON_LAISON: float = 0.2
 
+### Statut system ###
+class Statut(StrEnum):
+    HYPERSTATIC = "hyperstatic"
+    ISOSTATIC = "isostatic"
+    HYPOSTATIC = "hypostatic"
 
 ### Z-ORDER ###
 class Zorder(IntEnum):
