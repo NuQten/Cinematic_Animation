@@ -249,18 +249,22 @@ class Segment2D(Droite2D):
         else:
             return min(P.distance(self.point1), P.distance(self.point2))
 
-    def draw(self, ax: plt.Axes, color: Colors|None = None, **kwargs) -> plt.Axes:
+    def draw(self, ax: plt.Axes, color: Colors | None = None, **kwargs) -> plt.Axes:
         color = color or self.color
         x_values = [self.point1.x, self.point2.x]
         y_values = [self.point1.y, self.point2.y]
-        ax.plot(x_values, y_values, color= color, linewidth = 2, **kwargs)
+        ax.plot(x_values, y_values, color=color, linewidth=2, **kwargs)
 
         return ax
 
 
-
 class Structure2D:
-    def __init__(self, *segments: Segment2D, name: str | None = None, color: Colors = Colors.BLACK) -> None:
+    def __init__(
+        self,
+        *segments: Segment2D,
+        name: str | None = None,
+        color: Colors = Colors.BLACK,
+    ) -> None:
 
         if len(segments) == 0:
             raise ValueError("Une structure 2D doit contenir au moins un segment")
@@ -298,10 +302,10 @@ class Structure2D:
         else:
             return False
 
-    def __eq__(self, other:object) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Structure2D):
-            return False 
-        
+            return False
+
         return self.segments_set == other.segments_set
 
     def __hash__(self) -> int:
@@ -318,9 +322,9 @@ class Structure2D:
     def draw(self, ax: plt.Axes, color: Colors | None = None) -> plt.Axes:
 
         print_segment = [
-            [(segment.point1.x, segment.point1.y), 
-             (segment.point2.x, segment.point2.y)] 
-            for segment in self.segments]
+            [(segment.point1.x, segment.point1.y), (segment.point2.x, segment.point2.y)]
+            for segment in self.segments
+        ]
         color_segment = [color or self.color for i in range(len(self.segments))]
         lc = LineCollection(print_segment, colors=color_segment, linewidths=2)
         ax.add_collection(lc)
@@ -338,6 +342,7 @@ def to_structure2d(element: Structure2D | Segment2D) -> Structure2D:
         raise TypeError(
             f"Attendu Structure2D ou Segment2D, reçu {type(element).__name__}"
         )
+
 
 def det_2_vector2d(u: Segment2D | Droite2D, v: Segment2D | Droite2D) -> float:
     return float(u[0] * v[1] - u[1] * v[0])

@@ -11,10 +11,10 @@ from .constants import Colors
 
 class Mechanism:
     def __init__(
-        self, 
-        structures: list[Structure2D | Segment2D], 
+        self,
+        structures: list[Structure2D | Segment2D],
         liaisons: list[Liaison],
-        motors : list[Motor]|None = None
+        motors: list[Motor] | None = None,
     ) -> None:
 
         self.structures = [to_structure2d(s) for s in structures]
@@ -82,16 +82,14 @@ class Mechanism:
 
     def draw(self, ax: plt.Axes) -> plt.Axes:
 
-        for i, structure in enumerate(self.structures) : 
+        for i, structure in enumerate(self.structures):
             structure.draw(ax, self.colors[i])
 
-        for liaison in self.liaisons : 
+        for liaison in self.liaisons:
             liaison.draw(ax)
 
         return ax
 
-if __name__ == '__main__': 
 
+if __name__ == "__main__":
     pass
-
-
