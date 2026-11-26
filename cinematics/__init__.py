@@ -1,4 +1,4 @@
-from .constants import TOLERANCE
+from .constants import TOLERANCE, Colors
 from .errors import JonctionError
 from .geometry import Droite2D, Point2D, Segment2D, Structure2D, to_structure2d, det_2_vector2d
 from .joints import (
@@ -11,3 +11,5 @@ from .joints import (
 )
 from .mechanism import Mechanism
 from .motors import Motor, MotorLinear2D, MotorRotatif2D
+from .gui import MechanismGUI
+
