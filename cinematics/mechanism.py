@@ -1,12 +1,15 @@
 from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 from scipy import optimize
+from collections.abc import Callable, Sequence
+
 
 from .geometry import Point2D, Structure2D, Segment2D, to_structure2d
 from .joints import Liaison, LiaisonBati2D
 from .motors import Motor
-from .constants import Colors, Statut
+from .constants import Colors, Statut, TOLERANCE
 
 
 class Mechanism:
@@ -50,19 +53,26 @@ class Mechanism:
     @property
     def state(self) -> Statut:
 
-        Ic = 0 
-        nb_liaison = 0
-        for liaison in self.liaisons : 
-            Ic += liaison.nb_ddl
-            if not isinstance(LiaisonBati2D):
-                nb_liaison += 1
+        #Ic = 0 
+        #nb_liaison = 0
+        #for liaison in self.liaisons : 
+        #    Ic += liaison.nb_ddl
+        #    if not isinstance(liaison, LiaisonBati2D):
+        #        nb_liaison += 1
 
-        gamma = nb_liaison - (len(self.structures)+1) + 1
-        Es = 3*gamma # 3 car 2D, 6 si 3D 
+        #gamma = nb_liaison - (len(self.structures)+1) + 1
+        #Es = 3*gamma # 3 car 2D, 6 si 3D 
 
+        #m = len(self.motors)
+        #h = m - Ic + Es
+
+        Ec = 3*(len(self.structures) + 1 - 1)
+        Ic = 0
+        for liaison in self.liaisons:
+            Ic += 3 - liaison.nb_ddl
         m = len(self.motors)
-        h = m - Ic + Es
 
+        h = Ec - Ic + m
         if h == 0 : 
             return Statut.ISOSTATIC
         elif h > 0 : 
@@ -92,11 +102,11 @@ class Mechanism:
 
         return residus
 
-    def solve(self) -> bool:
+    def solve(self, tolerance: float = TOLERANCE) -> bool:
         X = self.X if self.X is not None else self.X0
-        sol = optimize.root(self.systeme_constraintes, X, method="hybr")
+        sol = optimize.least_squares(self.systeme_constraintes, X, method="lm")
 
-        if sol.success:
+        if sol.success and sol.cost < tolerance:
             self.X = sol.x
             self._update_positions(self.X)
             return True
@@ -112,6 +122,54 @@ class Mechanism:
             liaison.draw(ax)
 
         return ax
+
+    def _step_animation(
+            self,
+            frame: int,
+            ax: plt.Axes, 
+            dt: float,
+            xlim: tuple,
+            ylim: tuple
+    ) -> list:
+
+        ax.clear()
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        ax.set_aspect("equal", adjustable="box")
+
+        for motor in self.motors:
+            motor.update(dt)
+
+        self.solve()
+        self.draw(ax)
+
+        return []
+
+    def animate(
+        self,
+        ax: plt.Axes,
+        dt: float = 0.05,
+        frames: int = 200,
+        repeat: bool = True
+    ) -> FuncAnimation:
+
+        longueur_totale = sum(
+            seg.longeur for st in self.structures for seg in st.segments
+        )
+        centre_x = np.mean([p.x for st in self.structures for p in st.points])
+        centre_y = np.mean([p.y for st in self.structures for p in st.points])
+
+        xlim = (centre_x - longueur_totale, centre_x + longueur_totale)
+        ylim = (centre_y - longueur_totale, centre_y + longueur_totale)
+
+        return FuncAnimation(
+            ax.get_figure(),
+            self._step_animation,
+            frames= frames,
+            fargs= (ax, dt, xlim, ylim),
+            interval = int(dt * 1000),
+            repeat= repeat
+        )
 
 
 if __name__ == "__main__":
