@@ -53,26 +53,13 @@ class Mechanism:
     @property
     def state(self) -> Statut:
 
-        #Ic = 0 
-        #nb_liaison = 0
-        #for liaison in self.liaisons : 
-        #    Ic += liaison.nb_ddl
-        #    if not isinstance(liaison, LiaisonBati2D):
-        #        nb_liaison += 1
-
-        #gamma = nb_liaison - (len(self.structures)+1) + 1
-        #Es = 3*gamma # 3 car 2D, 6 si 3D 
-
-        #m = len(self.motors)
-        #h = m - Ic + Es
-
-        Ec = 3*(len(self.structures) + 1 - 1)
+        Ec = 3*len(self.structures)
         Ic = 0
         for liaison in self.liaisons:
             Ic += 3 - liaison.nb_ddl
         m = len(self.motors)
 
-        h = Ec - Ic + m
+        h = Ic + m - Ec
         if h == 0 : 
             return Statut.ISOSTATIC
         elif h > 0 : 
