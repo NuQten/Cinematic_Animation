@@ -562,21 +562,42 @@ class LiaisonBati2D(LiaisonEncastrement2D):
         super().__init__(structure, structure_sol, point, point)
 
         self.bati = self.structure2
+        self.point_ext1 = sol_point1
+        self.point_ext2 = sol_point2
 
     def draw(
-        self, ax: plt.Axes, longeur: float = RAYON_LAISON, angle: float = pi / 4
+        self, 
+        ax: plt.Axes, 
+        longeur: float = RAYON_LAISON, 
+        angle: float = pi / 4,
+        inverser: bool = False
     ) -> plt.Axes:
 
         color = self.structure.color
-        u = self.bati.segments[0].vector_director
-        v = [
-            u[0] * cos(angle) - u[1] * sin(angle),
-            u[0] * sin(angle) + u[1] * cos(angle),
-        ]
-        p1 = self.bati.points[1]
-        p2 = self.bati.points[2]
+        p1 = self.point_ext1
+        p2 = self.point_ext2
+        centre = self.centre
 
-        # 1. Segment de base
+        u = self.bati.segments[0].vector_director
+        n = self.bati.segments[0].vector_normal
+
+        # 1. Déterminer la direction de la structure (l'intérieur) au niveau du point d'ancrage
+        dir_interieur = np.zeros(2)
+        for seg in self.structure.segments:
+            if centre == seg.point1 :
+                dir_interieur += seg.vector_director
+            elif centre == seg.point2 : 
+                dir_interieur -= seg.vector_director
+
+        # 2. Choisir le sens extérieur (opposé à dir_interieur)
+        sens = -1.0 if np.dot(n, dir_interieur) > 0 else 1.0
+        if inverser:
+            sens *= -1.0
+    
+        v = -cos(angle)*u + sens*sin(angle)*n
+
+
+        # 3. Segment de base
         ax.plot(
             [p1.x, p2.x],
             [p1.y, p2.y],
