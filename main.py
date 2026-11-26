@@ -1,102 +1,55 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from math import pi
+
+from cinematics.geometry import Point2D, Segment2D, Structure2D
+from cinematics.joints import LiaisonBati2D, LiaisonGlissiere2D, LiaisonPivot2D, LiaisonPivotGlissant2D
+from cinematics.mechanism import Mechanism
+from cinematics.motors import MotorRotatif2D
+
+# 1. Définition des points (configuration initiale géométriquement cohérente)
+O = Point2D(0.0, 0.0, name="O")   # Pivot fixe de la manivelle
+A = Point2D(0.0, 2.0, name="A")   # Bout de la manivelle / pied de bielle
+B = Point2D(4.0, 0.0, name="B")   # Centre du coulisseau (glissière)
+
+# Points pour définir le rail horizontal (bâti)
+R = Point2D(8.0, 0.0, name="R2")
+
+# 2. Création des solides (Structures)
+# Note : pour que O appartienne à bati_rail, découpons le rail en [R1, O] et [O, R2] :
+bati_rail = Structure2D(Segment2D(O, R, color="black"), name="Bati", color="black")
+manivelle = Structure2D(Segment2D(O, A, color="royalblue"), name="Manivelle", color="royalblue")
+bielle = Structure2D(Segment2D(A, B, color="crimson"), name="Bielle", color="crimson")
 
 
+# 3. Définition des liaisons
+liaisons = [
+    LiaisonBati2D(bati_rail, R, orientation=pi/4),               # Ancrage du rail au sol
+    LiaisonPivot2D(bati_rail, manivelle, point1=O),              # Pivot en O (nécessite O dans bati_rail, voir note ci-dessous)
+    LiaisonPivot2D(manivelle, bielle, point1=A),                 # Pivot en A
+    LiaisonPivotGlissant2D(
+        bati_rail, 
+        bielle, 
+        bati_rail.segments[0], 
+        point_coulissant=B
+    )
+]
 
-### CONSANTE ### 
-Y_AC: float = 1.0 # Distance Y entre AC 
-X_AC: float = 1.0 # Distance X entre AC 
-X_CE: float = 1.0 # Distance X entre CE 
+# 4. Définition des moteurs
+motors = [
+    MotorRotatif2D(manivelle.segments[0], pi/2)
+] 
 
-L_AB: float = 1.0 # Longeur semgent AB 
-L_BD: float = 2.0 # Longeur semgent BD
-L_DE: float = 3.0 # Longeur semgent DE
-
-
-
-
-class Mechanism:
-
-    def __init__(self, arg:list[int] = [2, 6, 4, 1, 3, 3]):  # noqa: B006
-        self.r1 = arg[0]
-        self.r2 = arg[1]
-        self.r3 = arg[2]
-        self.a = arg[3]
-        self.b = arg[4]
-        self.c = arg[5]
-
-        self.fi0 = 0
-        self.x0 = [3, 1, 5*pi/3, pi/3]
-
-        self.sol = None
-        self.res = {}
-        # self.draw()
+# 5. Création et affichage du mécanisme
+meca = Mechanism(
+    structures=[bati_rail, manivelle, bielle],
+    liaisons=liaisons,
+    motors=motors
+)
 
 
-    def mech_sys(self, OUT, fi0):
-    
-        x, y, fi1, fi2 = OUT
-    
-        return [self.r1*cos(fi0) + x*cos(fi1) - self.b,
-                self.r1*sin(fi0) + x*sin(fi1) + self.a,
-                (self.r2 - x)*cos(fi1) + self.r3*cos(fi2) + self.c,
-                (self.r2 - x)*sin(fi1) + self.r3*sin(fi2) - y]
+fig, ax = plt.subplots(figsize=(7, 7))
 
-    def sys_solve(self, fi0=None):
-        if fi0 == None: 
-            fi0 = self.fi0
-        else:
-            self.fi0 = fi0
+anim = meca.animate(ax)
 
-        sol = optimize.root(self.mech_sys, self.x0, fi0)
-        self.x0 = sol.x
-        self.res = np.concatenate(([fi0], sol.x))
-
-    def mech_PFS(self):
-        pass
-
-
-    def draw(self, ax = None) -> plt.Axes:
-        if ax == None:
-            _fig, ax = plt.subplots()
-            flag = 1
-        else : 
-            flag = 0
-
-        _x, y, fi1, _fi2 = self.x0
-        A = [0, 0]
-        B = [self.r1*cos(self.fi0), self.r1*sin(self.fi0)]
-        D = [self.r1*cos(self.fi0) + self.r2*cos(fi1), self.r1*sin(self.fi0) + self.r2*sin(fi1)]
-        E = [self.b + self.c, -self.a + y]
-
-        ax.plot([A[0], B[0]], [A[1], B[1]])
-        ax.plot([B[0], D[0]], [B[1], D[1]])
-        ax.plot([D[0], E[0]], [D[1], E[1]])
-
-        if flag == 1 : 
-            ax.axis([-3, 8, -5, 8])
-            plt.show()
-
-        return ax
-
-    def animate(self, fi0_min=0, fi0_max=2*pi, n_steps=360):
-        fi0 = np.linspace(fi0_min, fi0_max, n_steps)
-
-        _fig, ax = plt.subplots()
-
-        ax.axis([-3, 8, -5, 8])
-        
-
-        for angle in fi0:
-            self.sys_solve(angle)
-            ax.cla()
-            ax.set_xlim(-5, 10)
-            ax.set_ylim(-7.5, 7.5)
-            self.draw(ax)
-            plt.pause(0.0001)
-    
-
-mech1 = Mechanism()
-mech1.animate()
-
-
-
-
+plt.show()
